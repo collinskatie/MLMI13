@@ -1,5 +1,6 @@
 import os, codecs, sys
 from nltk.stem.porter import PorterStemmer
+import numpy as np
 
 class MovieReviewCorpus():
     def __init__(self,stemming,pos):
@@ -45,4 +46,63 @@ class MovieReviewCorpus():
         3. store reviews in self.folds. self.folds is a dictionary with the format: self.folds[fold_number] where fold_number is an int 0-9.
            you can get the fold number from the review file name.
         """
-        # TODO Q0
+
+        data_dir = f"data/reviews/"
+
+        # convert a single review into (token, pos-tag format)
+        def get_single_review(fpth):
+            # read in data from a single file (each file = a single review)
+            # help reading in data from: https://www.pythontutorial.net/python-basics/python-read-text-file/
+            with open(fpth) as f:
+                full_review_data = f.readlines()
+                full_review_data = [l.strip() for l in full_review_data] # remove trailing new line
+
+            # token separatred by "\t" from POS
+            # todo (for future): could optionally ignore punctuation!!
+            parsed_review_data = []
+            for token_data in full_review_data:
+                if "\t" not in token_data: continue
+                token, pos_tag = token_data.split("\t")
+                parsed_review_data.append((token, pos_tag))
+
+            return parsed_review_data
+
+        # define sentiment classes (note: could be changed in the future)
+        sentiment_classes = ["POS", "NEG"]
+
+        # maintain lists that we want info from
+        train_info = []
+        test_info = []
+        cv_info = {}
+
+        for sent_class in sentiment_classes:
+            sent_dir = f"{data_dir}{sent_class}/" # "sent" = "sentiment"
+            all_reviews = [rev for rev in os.listdir(sent_dir) if rev[-4:] == ".tag"]
+
+            # process each review and put in associated train/test based on file number
+            # (also determines fold)
+            for review_file_name in all_reviews:
+
+                fold_num = int(review_file_name[3]) # all start w/ cv
+                parsed_review_data = get_single_review(f"{sent_dir}{review_file_name}")
+                review_metadata = [sent_class, parsed_review_data]
+
+                if fold_num == 9:
+                    test_info.append(review_metadata)
+                else:
+                    train_info.append(review_metadata)
+
+                if fold_num not in cv_info: cv_info[fold_num] = [review_metadata]
+                else: cv_info[fold_num].append(review_metadata)
+
+        # set class attributes using curated metadata
+        self.train = train_info
+        self.test = test_info
+        self.fold_data = cv_info
+
+        print(f"num train: {len(self.train)}, num test: {len(self.test)}")
+
+        # all review data is the combined train and test
+        self.reviews = train_info + test_info #list(np.concat(self.train, self.test))
+
+        print(f"tot num reviews: {len(self.reviews)}")

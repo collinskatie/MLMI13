@@ -1,7 +1,7 @@
 import numpy, os
 from subprocess import call
 from gensim.models import Doc2Vec
-from Classifiers import SVM
+from Classifiers import SVMText
 
 
 class SVMDoc2Vec(SVM):
