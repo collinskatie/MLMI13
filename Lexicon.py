@@ -39,3 +39,34 @@ class SentimentLexicon(Evaluation):
         # reset predictions
         self.predictions=[]
         # TODO Q0
+
+        threshold = 0.2
+
+        # loop over all reviews in coprus
+        for review in reviews:
+            true_class, review_data = review
+            # score words (ignore POS for now)
+            n_positive = 0 # count num positive
+            n_total = 0 # only count the number that are in lexicon
+            for word, _ in review_data:
+                # convert word to lower case as keys are case sensitive
+                word = word.lower()
+                # skip if not in lexicon (todo: is there a better way to handle missing words??)
+                if word not in self.lexicon: continue
+                else:
+                    word_info = self.lexicon[word]
+                    # get whether pos or neg
+                    n_positive += 1 if word_info[1] == "positive" else 0
+                    n_total += 1
+            # get a normalized "positivity" score
+            if n_total > 0:
+                positivity = n_positive / n_total # divide by num words
+            else: positivity = 0 # e.g., no data - avoid divide by zero
+            if positivity > threshold: pred_class = "POS"
+            else: pred_class = "NEG"
+
+            # check if matches true or not
+            if pred_class == true_class: self.predictions.append("+")
+            else: self.predictions.append("-")
+
+        return self.predictions
