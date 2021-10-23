@@ -3,9 +3,8 @@ from subprocess import call
 from gensim.models import Doc2Vec
 from Classifiers import SVMText
 
-
-class SVMDoc2Vec(SVM):
-    """ 
+class SVMDoc2Vec(SVMText):
+    """
     class for baseline extension using SVM with Doc2Vec pre-trained vectors
     """
     def __init__(self,model,svmlight_dir):
@@ -34,7 +33,7 @@ class SVMDoc2Vec(SVM):
 
     def getVectors(self,reviews):
         """
-        infer document vector for each review. 
+        infer document vector for each review.
 
         @param reviews: movie reviews
         @type reviews: list of (string, list) tuples corresponding to (label, content)
@@ -45,6 +44,6 @@ class SVMDoc2Vec(SVM):
         """
         # TODO Q8
 
-    # since using pre-trained vectors don't need to determine features 
+    # since using pre-trained vectors don't need to determine features
     def getFeatures(self,reviews):
         pass

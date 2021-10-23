@@ -106,3 +106,8 @@ class MovieReviewCorpus():
         self.reviews = train_info + test_info #list(np.concat(self.train, self.test))
 
         print(f"tot num reviews: {len(self.reviews)}")
+
+    def get_frequencies():
+        # todo: KATIE IDEA --- fill in w/ easy pre-processing into frequencies
+        # for naive bayes
+        print("get freqs")

@@ -75,7 +75,7 @@ class NaiveBayesText(Evaluation):
     def create_vocab_dict(self):
         vocab_to_id = {}
         for word in self.vocabulary:
-            vocab_to_id[word] = len(vocab_to_id)
+            vocab_to_id[word] = len(vocab_to_id) # TODO: ask if this is a typo
         return vocab_to_id
 
     def train(self,reviews):
@@ -94,6 +94,45 @@ class NaiveBayesText(Evaluation):
         @type reviews: list of (string, list) tuples corresponding to (label, content)
         """
         # TODO Q1
+
+        # reset
+        self.vocabulary = set()
+        self.prior = {}
+        self.condProb = {}
+
+        # extract vocab
+        self.extractVocabulary(reviews)
+
+        # get prior by counting number of docs of a particular class
+        tot_num_docs = len(reviews)
+        n_pos = np.sum([1 for sentiment, _ in reviews if sentiment == "POS"])
+        n_neg = tot_num_docs - n_pos # b/c two poss classes
+        self.prior = {"POS": n_pos/tot_num_docs, "NEG": n_neg/tot_num_docs}
+
+        # get conditional probabilities
+        # first count token frequencies per class by looping over reviews once
+        token_freqs = {"POS": {}, "NEG": {}}
+        for sentiment, review in reviews:
+            tokens = self.extractReviewTokens(review)
+            for token in tokens:
+                if token in token_freqs[sentiment]:
+                    token_freqs[sentiment][token] += 1
+                else:
+                    if token in self.vocabulary: # only add if token in vocab
+                        token_freqs[sentiment][token] = 1
+
+        # get total number of words in each class (for cond prob denominator)
+        n_words_sentiment = {}
+        sentiment_classes = ["POS","NEG"]
+        for sent in sentiment_classes:
+            n_words_sentiment[sent] = np.sum([token_freqs[sent][word] for word in token_freqs[sent]])
+
+        # now get conditional probs by iterating over vocab
+        for token in self.vocabulary:
+            # get cond prob for both class
+            for sent in sentiment_classes:
+                self.condProb[token][sent] = token_freqs[sent][token]/n_words_sentiment[sent]
+
         # TODO Q2 (use switch for smoothing from self.smoothing)
 
     def test(self,reviews):
@@ -105,6 +144,32 @@ class NaiveBayesText(Evaluation):
         @type reviews: list of (string, list) tuples corresponding to (label, content)
         """
         # TODO Q1
+        preds = []
+        sentiment_classes = ["POS", "NEG"]
+        for true_sentiment, review in reviews:
+            # get predicted sentiment
+            # first, extract tokens
+            tokens = self.extractReviewTokens(review)
+            # next, get each class' prob
+            sentiment_probs = {}
+            for sent in sentiment_classes:
+                # log of the prior prob
+                prior_prob = np.log(self.prior[sent])
+                # summed log likelihood per word
+                cond_prob = 0
+                for token in tokens:
+                    if token in self.vocabulary: # note: might not be needed
+                        cond_prob += np.log(self.condProb[token][sent])
+                sentiment_probs[sent] = prior_prob + cond_prob
+            # finally, take argmax over classes as pred
+            # help from: https://stackoverflow.com/questions/268272/getting-key-with-maximum-value-in-dictionary
+            pred_sent = max(sentiment_probs, key=lambda k: sentiment_probs[k])
+            if pred_sent == true_sentiment:
+                preds.append("+")
+            else: preds.append("-")
+        self.predictions = preds
+
+
 
 class SVMText(Evaluation):
     def __init__(self,bigrams,trigrams,discard_closed_class):
@@ -171,7 +236,7 @@ class SVMText(Evaluation):
         1. extract vocabulary (i.e. get features for training)
         2. extract features for each review as well as saving the sentiment
         3. append each feature to self.input_features and each label to self.labels
-        
+
         @param reviews: movie reviews
         @type reviews: list of (string, list) tuples corresponding to (label, content)
         """
