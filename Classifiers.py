@@ -128,10 +128,17 @@ class NaiveBayesText(Evaluation):
             n_words_sentiment[sent] = np.sum([token_freqs[sent][word] for word in token_freqs[sent]])
 
         # now get conditional probs by iterating over vocab
+        # set empty for all tokens to start
+        self.condProb = {token: {"POS": 0, "NEG": 0} for token in self.vocabulary}
+
         for token in self.vocabulary:
             # get cond prob for both class
             for sent in sentiment_classes:
-                self.condProb[token][sent] = token_freqs[sent][token]/n_words_sentiment[sent]
+                if token in token_freqs[sent]:
+                    self.condProb[token][sent] = token_freqs[sent][token]/n_words_sentiment[sent]
+                else:
+                    # token never occured (note, redundant w/ dict definition)
+                    self.condProb[token][sent] = 0 # NOTE: this is bad b/c means that we can NEVER place any probability on this token
 
         # TODO Q2 (use switch for smoothing from self.smoothing)
 
