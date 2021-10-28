@@ -81,7 +81,7 @@ class MovieReviewCorpus():
 
             # process each review and put in associated train/test based on file number
             # (also determines fold)
-            for review_file_name in all_reviews:
+            for review_idx, review_file_name in enumerate(all_reviews):
 
                 fold_num = int(review_file_name[3]) # all start w/ cv
                 parsed_review_data = get_single_review(f"{sent_dir}{review_file_name}")
@@ -92,8 +92,17 @@ class MovieReviewCorpus():
                 else:
                     train_info.append(review_metadata)
 
-                if fold_num not in cv_info: cv_info[fold_num] = [review_metadata]
-                else: cv_info[fold_num].append(review_metadata)
+                # TODO: update w/ round-robin splitting
+                fold_num = review_idx % 10 # b/c mod-10
+                if fold_num not in cv_info:
+                    cv_info[fold_num] = [review_metadata]
+                else:
+                    cv_info[fold_num].append(review_metadata)
+
+
+                # CONSECUTIVE SPLITTING
+                # if fold_num not in cv_info: cv_info[fold_num] = [review_metadata]
+                # else: cv_info[fold_num].append(review_metadata)
 
         # set class attributes using curated metadata
         self.train = train_info
@@ -106,8 +115,3 @@ class MovieReviewCorpus():
         self.reviews = train_info + test_info #list(np.concat(self.train, self.test))
 
         print(f"tot num reviews: {len(self.reviews)}")
-
-    def get_frequencies():
-        # todo: KATIE IDEA --- fill in w/ easy pre-processing into frequencies
-        # for naive bayes
-        print("get freqs")

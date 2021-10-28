@@ -150,6 +150,8 @@ class NaiveBayesText(Evaluation):
         # set empty for all tokens to start
         self.condProb = {token: {"POS": 0, "NEG": 0} for token in self.vocabulary}
 
+        print("VOCAB FOR ALAN!! ", len(self.vocabulary))
+
         laplace_smoother = 1 # laplace smoothing of a constant value
         if self.smoothing:
             # add the num tot words in the vocab to each n_words

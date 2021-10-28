@@ -47,7 +47,8 @@ class SentimentLexicon(Evaluation):
             positivity_score = 0 # b/c higher = more positive
             for word, _ in review_data:
                 # convert word to lower case as keys are case sensitive
-                word = word.lower()
+                # TODO: add ideas about lower!! e.g., names ([death] "will", Will), acronymns, use cases
+                word = word.lower() # b/c want to avoid separating the data (more data-efficient for lower)
                 # skip if not in lexicon (todo: is there a better way to handle missing words??)
                 if word not in self.lexicon: continue
                 else:
