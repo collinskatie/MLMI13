@@ -153,9 +153,10 @@ class NaiveBayesText(Evaluation):
         laplace_smoother = 1 # laplace smoothing of a constant value
         if self.smoothing:
             # add the num tot words in the vocab to each n_words
-            n_tot_words = np.sum([n_words_sentiment[sent] for sent in sentiment_classes])
+            n_tot_words = len(self.vocabulary)#np.sum([n_words_sentiment[sent] for sent in sentiment_classes])
+            print("total num words: ", n_tot_words)
             for sent in sentiment_classes:
-                n_words_sentiment[sent] += n_tot_words
+                n_words_sentiment[sent] += (n_tot_words * laplace_smoother)
 
         print("smoothing? ", self.smoothing, " POS: ", n_words_sentiment["POS"], " NEG: ", n_words_sentiment["NEG"])
 
@@ -169,10 +170,9 @@ class NaiveBayesText(Evaluation):
             for sent in sentiment_classes:
                 if token in token_freqs[sent]:
                     if self.smoothing:
-                        self.condProb[token][sent] = token_freqs[sent][token] + laplace_smoother/n_words_sentiment[sent]
+                        self.condProb[token][sent] = (token_freqs[sent][token] + laplace_smoother)/n_words_sentiment[sent]
                     else:
                         self.condProb[token][sent] = token_freqs[sent][token]/n_words_sentiment[sent]
-
                 else:
                     # token never occured (note, redundant w/ dict definition)
                     if self.smoothing:
