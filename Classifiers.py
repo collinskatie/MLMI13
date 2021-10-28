@@ -78,6 +78,25 @@ class NaiveBayesText(Evaluation):
             vocab_to_id[word] = len(vocab_to_id) # TODO: ask if this is a typo
         return vocab_to_id
 
+    def get_cond_prob(self, token, sentiment, token_freqs, n_words_sentiment, smoother=1):
+        # NOTE: written for ease of abstraction + modification
+        # get the conditional probability for a given token and sentiment class
+        if token in token_freqs[sentiment]:
+            f_w = token_freqs[sentiment][token] # counts
+            if self.smoothing:
+                f_w += smoother
+            # print("fw: ", f_w, " smoothing? ", self.smoothing)
+            self.condProb[token][sentiment] = f_w/n_words_sentiment[sentiment]
+        else:
+            # token never occured (note, redundant w/ dict definition)
+            # avoids strange log zero issues
+            # print("NEVER OCCURED!!")
+            if self.smoothing:
+                self.condProb[token][sentiment] = smoother/n_words_sentiment[sentiment]
+            else: self.condProb[token][sentiment] = 0
+            #np.finfo(float).eps # NOTE: this is bad b/c means that we can NEVER place any probability on this token
+
+
     def train(self,reviews):
         """
         train NaiveBayesText classifier.
@@ -131,14 +150,35 @@ class NaiveBayesText(Evaluation):
         # set empty for all tokens to start
         self.condProb = {token: {"POS": 0, "NEG": 0} for token in self.vocabulary}
 
+        laplace_smoother = 1 # laplace smoothing of a constant value
+        if self.smoothing:
+            # add the num tot words in the vocab to each n_words
+            n_tot_words = np.sum([n_words_sentiment[sent] for sent in sentiment_classes])
+            for sent in sentiment_classes:
+                n_words_sentiment[sent] += n_tot_words
+
+        print("smoothing? ", self.smoothing, " POS: ", n_words_sentiment["POS"], " NEG: ", n_words_sentiment["NEG"])
+
+        # for token in self.vocabulary:
+        #     # get cond prob for both class
+        #     for sent in sentiment_classes:
+        #         self.get_cond_prob(token, sentiment, token_freqs, n_words_sentiment, laplace_smoother)
+
         for token in self.vocabulary:
             # get cond prob for both class
             for sent in sentiment_classes:
                 if token in token_freqs[sent]:
-                    self.condProb[token][sent] = token_freqs[sent][token]/n_words_sentiment[sent]
+                    if self.smoothing:
+                        self.condProb[token][sent] = token_freqs[sent][token] + laplace_smoother/n_words_sentiment[sent]
+                    else:
+                        self.condProb[token][sent] = token_freqs[sent][token]/n_words_sentiment[sent]
+
                 else:
                     # token never occured (note, redundant w/ dict definition)
-                    self.condProb[token][sent] = 0 # NOTE: this is bad b/c means that we can NEVER place any probability on this token
+                    if self.smoothing:
+                        self.condProb[token][sent] = laplace_smoother/n_words_sentiment[sent]
+                    else:
+                        self.condProb[token][sent] = 0 # NOTE: this is bad b/c means that we can NEVER place any probability on this token
 
         # TODO Q2 (use switch for smoothing from self.smoothing)
 
@@ -164,13 +204,17 @@ class NaiveBayesText(Evaluation):
                 prior_prob = np.log(self.prior[sent])
                 # summed log likelihood per word
                 cond_prob = 0
+                # todo: possibly set = to 100% to avoid skewing towards negative
                 for token in tokens:
                     if token in self.vocabulary: # note: might not be needed
-                        cond_prob += np.log(self.condProb[token][sent])
+                        if self.condProb[token][sent] == 0: cond_prob += 0
+                        else: cond_prob += np.log(self.condProb[token][sent])
                 sentiment_probs[sent] = prior_prob + cond_prob
             # finally, take argmax over classes as pred
             # help from: https://stackoverflow.com/questions/268272/getting-key-with-maximum-value-in-dictionary
+            # note: if both zero, could randomly return to avoid always choosing one class
             pred_sent = max(sentiment_probs, key=lambda k: sentiment_probs[k])
+            print(sentiment_probs)
             if pred_sent == true_sentiment:
                 preds.append("+")
             else: preds.append("-")
