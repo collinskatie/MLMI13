@@ -150,17 +150,12 @@ class NaiveBayesText(Evaluation):
         # set empty for all tokens to start
         self.condProb = {token: {"POS": 0, "NEG": 0} for token in self.vocabulary}
 
-        print("VOCAB FOR ALAN!! ", len(self.vocabulary))
-
         laplace_smoother = 1 # laplace smoothing of a constant value
         if self.smoothing:
             # add the num tot words in the vocab to each n_words
             n_tot_words = len(self.vocabulary)#np.sum([n_words_sentiment[sent] for sent in sentiment_classes])
-            print("total num words: ", n_tot_words)
             for sent in sentiment_classes:
                 n_words_sentiment[sent] += (n_tot_words * laplace_smoother)
-
-        print("smoothing? ", self.smoothing, " POS: ", n_words_sentiment["POS"], " NEG: ", n_words_sentiment["NEG"])
 
         # for token in self.vocabulary:
         #     # get cond prob for both class
@@ -222,25 +217,18 @@ class NaiveBayesText(Evaluation):
             else: preds.append("-")
         self.predictions = preds
 
-
-
 class SVMText(Evaluation):
     def __init__(self,bigrams,trigrams,discard_closed_class):
         """
         initialisation of SVMText object
-
         @param bigrams: add bigrams?
         @type bigrams: boolean
-
         @param trigrams: add trigrams?
         @type trigrams: boolean
-
         @param svmlight_dir: location of smvlight binaries
         @type svmlight_dir: string
-
         @param svmlight_dir: location of smvlight binaries
         @type svmlight_dir: string
-
         @param discard_closed_class: restrict unigrams to nouns, adjectives, adverbs and verbs?
         @type discard_closed_class: boolean
         """
@@ -263,10 +251,8 @@ class SVMText(Evaluation):
     def extractReviewTokens(self,review):
         """
         extract tokens from reviews.
-
         @param reviews: movie reviews
         @type reviews: list of (string, list) tuples corresponding to (label, content)
-
         @return: list of strings
         """
         text=[]
@@ -285,11 +271,11 @@ class SVMText(Evaluation):
     def getFeatures(self,reviews):
         """
         determine features and labels from training reviews.
-
         1. extract vocabulary (i.e. get features for training)
         2. extract features for each review as well as saving the sentiment
         3. append each feature to self.input_features and each label to self.labels
-
+        (self.input_features will then be a list of list, where the inner list is
+        the features)
         @param reviews: movie reviews
         @type reviews: list of (string, list) tuples corresponding to (label, content)
         """
@@ -301,21 +287,21 @@ class SVMText(Evaluation):
 
     def train(self,reviews):
         """
-        train svm
-
+        train svm. This uses the sklearn SVM module, and further details can be found using
+        the sci-kit docs. You can try changing the SVM parameters.
         @param reviews: training data
         @type reviews: list of (string, list) tuples corresponding to (label, content)
         """
         # function to determine features in training set.
         self.getFeatures(reviews)
 
-        # train SVM model
+        # reset SVM classifier and train SVM model
+        self.svm_classifier = svm.SVC()
         self.svm_classifier.fit(self.input_features, self.labels)
 
     def test(self,reviews):
         """
         test svm
-
         @param reviews: test data
         @type reviews: list of (string, list) tuples corresponding to (label, content)
         """
