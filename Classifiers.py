@@ -4,6 +4,9 @@ from nltk.util import ngrams
 from Analysis import Evaluation
 import numpy as np
 from sklearn import svm
+# tokenization help from: https://stackoverflow.com/questions/46965524/create-sparse-word-matrix-in-python-bag-of-words
+from sklearn.feature_extraction import DictVectorizer
+from collections import Counter, OrderedDict
 
 class NaiveBayesText(Evaluation):
     def __init__(self,smoothing,bigrams,trigrams,discard_closed_class):
@@ -240,6 +243,9 @@ class SVMText(Evaluation):
         self.trigrams=trigrams
         # restrict to nouns, adjectives, adverbs and verbs?
         self.discard_closed_class=discard_closed_class
+        
+        # maintain a tokenizer
+        self.v = DictVectorizer()
 
     def extractVocabulary(self,reviews):
         self.vocabulary = set()
@@ -265,7 +271,7 @@ class SVMText(Evaluation):
             for bigram in ngrams(review,2): text.append(term)
         if self.trigrams:
             for trigram in ngrams(review,3): text.append(term)
-        return text
+        return np.array(text)
 
     def getFeatureVec(self, review, num_features):
         """
@@ -291,23 +297,18 @@ class SVMText(Evaluation):
 
         self.input_features = []
         self.labels = []
-
-        # TODO Q6.
-        self.extractVocabulary(reviews)
-        # review feature = vec of size len(Vocab)
-        # each element represents count of that feature in the review
-        self.num_features = len(self.vocabulary)
-        from sklearn.feature_extraction.text import CountVectorizer
-        count_vec = CountVectorizer()
-        count_vec.fit_transform(np.array([' '.join(rev[1]) for rev in reviews]))
-        # for sentiment, review in reviews:
-        #     # input_feats = np.zeros(len(num_features))
-        #     # tokens = self.extractReviewTokens(review)
-        #     # for idx, feature in enumerate(self.vocabulary):
-        #     #     input_feats[idx] = tokens.count(feature)
-        #     input_feats = self.getFeatureVec(review, self.num_features)
-        #     self.input_features.append(input_feats)
-        #     self.labels.append(sentiment)
+        
+        # label is just first elmt per reviews
+        self.labels = [label for label, _ in reviews]
+        # extract tokens per review
+        review_tokens = [np.array(self.extractReviewTokens(review)) for _,review in reviews]
+        
+        # get vocab and get sparse vectors
+        # help from: https://stackoverflow.com/questions/46965524/create-sparse-word-matrix-in-python-bag-of-words
+        sparse_features = self.v.fit_transform(Counter(f) for f in np.array(review_tokens))
+        self.input_features = sparse_features # size = (num reviews, vocab size)
+        
+        return sparse_features # counts of occurances  
 
 
     def train(self,reviews):
@@ -330,13 +331,18 @@ class SVMText(Evaluation):
         @param reviews: test data
         @type reviews: list of (string, list) tuples corresponding to (label, content)
         """
-
-        # get features in testing set
-        test_features = []
-        for _, review in reviews:
-            test_features.append(self.getFeatureVec(review, self.num_features))
-
         # TODO Q6.1
-        pred_y = self.svm_classifier.predict(test_features)
-        if overwrite: self.predictions = pred_y
-        else: return pred_y
+        # get test features using pre-loaded featurizer (e.g., vocab already extracted by fitting) 
+        true_labels = [label for label, _ in reviews]
+        review_tokens = [np.array(self.extractReviewTokens(review)) for _,review in reviews]
+        test_features = self.v.transform(Counter(f) for f in np.array(review_tokens))
+        
+        pred_y = list(self.svm_classifier.predict(test_features))
+        
+        preds = []
+        for pred, true in zip(pred_y, true_labels):  
+            if pred == true: preds.append("+")
+            else: preds.append("-")
+
+        if overwrite: self.predictions = preds
+        else: return preds
