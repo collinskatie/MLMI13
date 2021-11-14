@@ -96,7 +96,6 @@ class NaiveBayesText(Evaluation):
             else: self.condProb[token][sentiment] = 0
             #np.finfo(float).eps # NOTE: this is bad b/c means that we can NEVER place any probability on this token
 
-
     def train(self,reviews):
         """
         train NaiveBayesText classifier.
@@ -179,7 +178,7 @@ class NaiveBayesText(Evaluation):
 
         # TODO Q2 (use switch for smoothing from self.smoothing)
 
-    def test(self,reviews):
+    def test(self,reviews, overwrite=True):
         """
         test NaiveBayesText classifier and store predictions in self.predictions.
         self.predictions should contain a "+" if prediction was correct and "-" otherwise.
@@ -211,11 +210,11 @@ class NaiveBayesText(Evaluation):
             # help from: https://stackoverflow.com/questions/268272/getting-key-with-maximum-value-in-dictionary
             # note: if both zero, could randomly return to avoid always choosing one class
             pred_sent = max(sentiment_probs, key=lambda k: sentiment_probs[k])
-            print(sentiment_probs)
             if pred_sent == true_sentiment:
                 preds.append("+")
             else: preds.append("-")
-        self.predictions = preds
+        if overwrite: self.predictions = preds
+        else: return preds # for later updating of predictions array
 
 class SVMText(Evaluation):
     def __init__(self,bigrams,trigrams,discard_closed_class):
@@ -268,6 +267,16 @@ class SVMText(Evaluation):
             for trigram in ngrams(review,3): text.append(term)
         return text
 
+    def getFeatureVec(self, review, num_features):
+        """
+        Custom function to get feature vector for a given review
+        """
+        feats = np.zeros(num_features)
+        tokens = self.extractReviewTokens(review)
+        for idx, feature in enumerate(self.vocabulary):
+            feats[idx] = 1#tokens.count(feature)
+        return feats
+
     def getFeatures(self,reviews):
         """
         determine features and labels from training reviews.
@@ -284,6 +293,22 @@ class SVMText(Evaluation):
         self.labels = []
 
         # TODO Q6.
+        self.extractVocabulary(reviews)
+        # review feature = vec of size len(Vocab)
+        # each element represents count of that feature in the review
+        self.num_features = len(self.vocabulary)
+        from sklearn.feature_extraction.text import CountVectorizer
+        count_vec = CountVectorizer()
+        count_vec.fit_transform(np.array([' '.join(rev[1]) for rev in reviews]))
+        # for sentiment, review in reviews:
+        #     # input_feats = np.zeros(len(num_features))
+        #     # tokens = self.extractReviewTokens(review)
+        #     # for idx, feature in enumerate(self.vocabulary):
+        #     #     input_feats[idx] = tokens.count(feature)
+        #     input_feats = self.getFeatureVec(review, self.num_features)
+        #     self.input_features.append(input_feats)
+        #     self.labels.append(sentiment)
+
 
     def train(self,reviews):
         """
@@ -299,11 +324,19 @@ class SVMText(Evaluation):
         self.svm_classifier = svm.SVC()
         self.svm_classifier.fit(self.input_features, self.labels)
 
-    def test(self,reviews):
+    def test(self,reviews, overwrite=True):
         """
         test svm
         @param reviews: test data
         @type reviews: list of (string, list) tuples corresponding to (label, content)
         """
 
+        # get features in testing set
+        test_features = []
+        for _, review in reviews:
+            test_features.append(self.getFeatureVec(review, self.num_features))
+
         # TODO Q6.1
+        pred_y = self.svm_classifier.predict(test_features)
+        if overwrite: self.predictions = pred_y
+        else: return pred_y

@@ -1,4 +1,5 @@
 import math,sys
+import numpy as np
 
 class Evaluation():
     """
@@ -20,6 +21,16 @@ class Evaluation():
         # reset predictions
         self.predictions=[]
         # TODO Q3
+        num_folds = len(set(corpus.folds))
+        # todo ask question: are the predictions storing the avg??
+        for fold_i in range(num_folds):
+            # hold out the i-th fold data
+            test_files = corpus.folds[fold_i]
+            train_files = np.array([np.array(corpus.folds[fold_j]) for fold_j in range(num_folds) if fold_j != fold_i])
+            train_files = np.reshape(train_files, [train_files.shape[0]*train_files.shape[1], train_files.shape[-1]])
+            self.train(train_files)
+            preds = self.test(test_files, overwrite=False)
+            self.predictions.extend(preds)
 
     def getStdDeviation(self):
         """

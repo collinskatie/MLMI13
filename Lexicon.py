@@ -45,7 +45,9 @@ class SentimentLexicon(Evaluation):
             true_class, review_data = review
             # score words (ignore Part of Speech for now)
             positivity_score = 0 # b/c higher = more positive
-            for word, _ in review_data:
+            for obj in review_data:
+                if type(obj) == list: word = obj[0]
+                else: word = obj
                 # convert word to lower case as keys are case sensitive
                 # TODO: add ideas about lower!! e.g., names ([death] "will", Will), acronymns, use cases
                 word = word.lower() # b/c want to avoid separating the data (more data-efficient for lower)

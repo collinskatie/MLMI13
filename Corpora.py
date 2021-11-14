@@ -19,7 +19,8 @@ class MovieReviewCorpus():
         self.train=[]
         self.test=[]
         # folds for cross-validation
-        self.folds={}
+        self.folds={} # round robin splitting
+        self.folds_conseq = {} # consecutive splitting
         # porter stemmer
         self.stemmer=PorterStemmer() if stemming else None
         # part-of-speech tags
@@ -63,7 +64,11 @@ class MovieReviewCorpus():
             for token_data in full_review_data:
                 if "\t" not in token_data: continue
                 token, pos_tag = token_data.split("\t")
-                parsed_review_data.append((token, pos_tag))
+                if self.pos:
+                    data_obj = (token, pos_tag)
+                else:
+                    data_obj = token#(token, pos_tag)
+                parsed_review_data.append(data_obj)#(token, pos_tag))
 
             return parsed_review_data
 
@@ -73,7 +78,8 @@ class MovieReviewCorpus():
         # maintain lists that we want info from
         train_info = []
         test_info = []
-        cv_info = {}
+        cv_info = {} # round robin
+        cv_info_conseq = {}
 
         for sent_class in sentiment_classes:
             sent_dir = f"{data_dir}{sent_class}/" # "sent" = "sentiment"
@@ -101,13 +107,14 @@ class MovieReviewCorpus():
 
 
                 # CONSECUTIVE SPLITTING
-                # if fold_num not in cv_info: cv_info[fold_num] = [review_metadata]
-                # else: cv_info[fold_num].append(review_metadata)
+                if fold_num not in cv_info_conseq: cv_info_conseq[fold_num] = [review_metadata]
+                else: cv_info_conseq[fold_num].append(review_metadata)
 
         # set class attributes using curated metadata
         self.train = train_info
         self.test = test_info
-        self.fold_data = cv_info
+        self.folds = cv_info
+        self.folds_conseq = cv_info_conseq
 
         print(f"num train: {len(self.train)}, num test: {len(self.test)}")
 
