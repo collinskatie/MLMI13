@@ -271,7 +271,7 @@ class SVMText(Evaluation):
             for bigram in ngrams(review,2): text.append(term)
         if self.trigrams:
             for trigram in ngrams(review,3): text.append(term)
-        return np.array(text)
+        return text
 
     def getFeatureVec(self, review, num_features):
         """
@@ -301,7 +301,10 @@ class SVMText(Evaluation):
         # label is just first elmt per reviews
         self.labels = [label for label, _ in reviews]
         # extract tokens per review
-        review_tokens = [np.array(self.extractReviewTokens(review)) for _,review in reviews]
+#         review_tokens = [np.array(self.extractReviewTokens(review)) for _,review in reviews]
+        review_tokens = np.empty(len(reviews), dtype=object) # ensures that we can save POS tag info as tuples
+        for idx,(_, review) in enumerate(reviews): 
+            review_tokens[idx] = self.extractReviewTokens(review)
         
         # get vocab and get sparse vectors
         # help from: https://stackoverflow.com/questions/46965524/create-sparse-word-matrix-in-python-bag-of-words
@@ -334,7 +337,9 @@ class SVMText(Evaluation):
         # TODO Q6.1
         # get test features using pre-loaded featurizer (e.g., vocab already extracted by fitting) 
         true_labels = [label for label, _ in reviews]
-        review_tokens = [np.array(self.extractReviewTokens(review)) for _,review in reviews]
+        review_tokens = np.empty(len(reviews), dtype=object) # ensures that we can save POS tag info as tuples
+        for idx,(_, review) in enumerate(reviews): 
+            review_tokens[idx] = self.extractReviewTokens(review)
         test_features = self.v.transform(Counter(f) for f in np.array(review_tokens))
         
         pred_y = list(self.svm_classifier.predict(test_features))
