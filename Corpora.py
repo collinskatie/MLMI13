@@ -28,7 +28,7 @@ class MovieReviewCorpus():
         # import movie reviews
         self.get_reviews()
 
-    def get_reviews(self):
+    def get_reviews(self, data_dir = f"data/reviews/"):
         """
         processing of movie reviews.
 
@@ -47,8 +47,6 @@ class MovieReviewCorpus():
         3. store reviews in self.folds. self.folds is a dictionary with the format: self.folds[fold_number] where fold_number is an int 0-9.
            you can get the fold number from the review file name.
         """
-
-        data_dir = f"data/reviews/"
 
         # convert a single review into (token, pos-tag format)
         def get_single_review(fpth):
