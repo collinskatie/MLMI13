@@ -22,6 +22,7 @@ class MovieReviewCorpus():
         self.folds={} # round robin splitting
         self.folds_conseq = {} # consecutive splitting
         # porter stemmer
+        self.stemming = stemming
         self.stemmer=PorterStemmer() if stemming else None
         # part-of-speech tags
         self.pos=pos
@@ -62,6 +63,9 @@ class MovieReviewCorpus():
             for token_data in full_review_data:
                 if "\t" not in token_data: continue
                 token, pos_tag = token_data.split("\t")
+                token = token.lower() # OPTIONAL!!!! discuss!!
+                if self.stemming: 
+                    token = self.stemmer.stem(token)
                 if self.pos:
                     data_obj = (token, pos_tag)
                 else:
