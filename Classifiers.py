@@ -310,7 +310,17 @@ class SVMText(Evaluation):
             
             
         review_tokens = [self.extractReviewTokens(review_text) for _, review_text in reviews]
+        
+        '''
+        idea: to handle cases where we have POS (check if tuple), just concatenate everything together per token
+        and have spaces between them 
+        '''
+        
+#         if tokens[0][0]
+        
+        
         documents = [" ".join(tokens) for tokens in review_tokens]
+        # tfidf help from: https://medium.com/@bedigunjit/simple-guide-to-text-classification-nlp-using-svm-and-naive-bayes-with-python-421db3a72d34
         sparse_features = self.v.fit_transform(documents)
         
 #         # get vocab and get sparse vectors
@@ -362,7 +372,6 @@ class SVMText(Evaluation):
         test_features = self.v.transform(documents)
         
         pred_y = list(self.svm_classifier.predict(test_features))
-        print("pred y: ", pred_y)
         
         preds = []
         for pred, true in zip(pred_y, true_labels):  
