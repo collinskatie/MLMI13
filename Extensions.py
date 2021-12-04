@@ -1,19 +1,24 @@
 import numpy, os
+import numpy as np
 from subprocess import call
-from gensim.models import Doc2Vec
+from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from sklearn import svm
 from Classifiers import SVMText
+# from nltk.tokenize import word_tokenize
+# import nltk
+# nltk.download('punkt')
 
 class SVMDoc2Vec(SVMText):
     """
     class for baseline extension using SVM with Doc2Vec pre-trained vectors
     """
-    def __init__(self,model, normalize_vecs=False):
+    def __init__(self,model,bigrams,trigrams,discard_closed_class, normalize_vecs=False):
         """
         initialisation of SVMDoc2Vec classifier.
         @param model: pre-trained doc2vec model to use
         @type model: string (e.g. random_model.model)
         """
+        SVMText.__init__(self, bigrams,trigrams,discard_closed_class)
         self.svm_classifier = svm.SVC()
         self.predictions = []
         self.model = model
@@ -53,6 +58,29 @@ class SVMDoc2Vec(SVMText):
         if self.normalize_vecs: 
             doc_vecs = [self.normalize(vector) for vec in doc_vecs]
         self.input_features = doc_vecs
+        return doc_vecs
+        
+     # override test to use extracted embeddings as features
+    def test(self,reviews, overwrite=True):
+        """
+        test svm
+        @param reviews: test data
+        @type reviews: list of (string, list) tuples corresponding to (label, content)
+        """
+        # TODO Q6.1
+        # get test features using pre-loaded featurizer (e.g., vocab already extracted by fitting) 
+        true_labels = [label for label, _ in reviews]
+        test_features = self.getFeatures(reviews)
+        
+        pred_y = list(self.svm_classifier.predict(test_features))
+        
+        preds = []
+        for pred, true in zip(pred_y, true_labels):  
+            if pred == true: preds.append("+")
+            else: preds.append("-")
+
+        if overwrite: self.predictions = preds
+        else: return preds
         
 class DocFeaturizer(): 
     """
@@ -66,13 +94,24 @@ class DocFeaturizer():
     def train_model(self, docs, epochs=10): 
         # help from: https://www.tutorialspoint.com/gensim/gensim_doc2vec_model.html
         # and: https://radimrehurek.com/gensim/auto_examples/tutorials/run_doc2vec_lee.html
+        
+        # wrap in tagged object 
+        # help from: https://medium.com/@mishra.thedeepak/doc2vec-simple-implementation-example-df2afbbfbad5
+        docs = [doc for sentiment_label, doc in docs]
+        tagged_data = [TaggedDocument(doc, [i]) for i, doc in enumerate(docs)]
+        
         # first, extract the vocab
-        self.model.build_vocab(docs)
-        self.model.train(docs, total_examples=self.model.corpus_count, epochs=epochs)
+        self.model.build_vocab(tagged_data)
+        self.model.train(tagged_data, total_examples=self.model.corpus_count, epochs=epochs)
    
     def infer_vector(self, doc_tokens): 
         # note: same name as main class to allow this object to be used w/ other classes w/o modification 
         return self.model.infer_vector(doc_tokens)
     
+    def get_embeddings(self, docs, normalize=False):
+        # extract embeddings for set of documents
+        docs = [doc for sentiment_label, doc in docs]
+        embeddings = [self.infer_vector(tokens) for tokens in docs]
+        return embeddings
     
         
