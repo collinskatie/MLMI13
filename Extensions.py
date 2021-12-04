@@ -86,9 +86,9 @@ class DocFeaturizer():
     """
     class for housing operations on the Doc2Vec featurizer (custom written for ease of i/o)
     """
-    def __init__(self, dim_features=50, window=2):
+    def __init__(self, dim_features=50, window=2,dm=1, dbow_words=0, dm_concat=0):
         # initialize model
-        self.model = Doc2Vec(vector_size=dim_features, window=window) 
+        self.model = Doc2Vec(vector_size=dim_features, window=window,dm=dm,dbow_words=dbow_words, dm_concat=dm_concat) 
         
         
     def train_model(self, docs, epochs=10): 
