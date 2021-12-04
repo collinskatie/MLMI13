@@ -78,7 +78,7 @@ class MovieReviewCorpus():
             for token_data in full_review_data:
                 if "\t" not in token_data: continue
                 token, pos_tag = token_data.split("\t")
-                token = token.lower() # OPTIONAL!!!! discuss!!
+#                 token = token.lower() # OPTIONAL!!!! discuss!!
                 if self.stemming: 
                     token = self.stemmer.stem(token)
                 if self.pos:
@@ -145,7 +145,7 @@ class MovieReviewCorpus():
         else: 
             # parse reviews from imbd data format
             supra_folders = ["train", "test"]
-            sub_folders = ["pos", "neg"]
+            sub_folders = ["pos", "neg", "unsup"]
             for split in supra_folders: # corresponds to train/test main split
                 for sent_class in sub_folders: # corresponds to labeled sentiment
                     sent_dir = f"{data_dir}{split}/{sent_class}/" 
