@@ -316,8 +316,16 @@ class SVMText(Evaluation):
         and have spaces between them 
         '''
         
+#         print("review tokens: ", review_tokens[0]) 
+#         print("shape: ", np.shape(review_tokens), np.shape(review_tokens[0]), review_tokens[0][0])
+        if type(review_tokens[0][0]) is tuple: 
+            # create a string out of the POS tag w/ original token => create new token
+            expanded_tokens = []
+            for review_text in review_tokens: 
+                expanded_tokens.append(["_".join([token, tag]) for token, tag in review_text])
+            review_tokens = expanded_tokens
+#             review_tokens = ["_".join(tag, token) for tag, token in review_text for review_text in review_tokens]
 #         if tokens[0][0]
-        
         
         documents = [" ".join(tokens) for tokens in review_tokens]
         # tfidf help from: https://medium.com/@bedigunjit/simple-guide-to-text-classification-nlp-using-svm-and-naive-bayes-with-python-421db3a72d34
@@ -368,6 +376,14 @@ class SVMText(Evaluation):
 #         test_features = self.v.transform(Counter(f) for f in np.array(review_tokens))
         
         review_tokens = [self.extractReviewTokens(review_text) for _, review_text in reviews]
+        
+        if type(review_tokens[0][0]) is tuple: 
+            # create a string out of the POS tag w/ original token => create new token
+            expanded_tokens = []
+            for review_text in review_tokens: 
+                expanded_tokens.append(["_".join([token, tag]) for token, tag in review_text])
+            review_tokens = expanded_tokens
+        
         documents = [" ".join(tokens) for tokens in review_tokens]
         test_features = self.v.transform(documents)
         
