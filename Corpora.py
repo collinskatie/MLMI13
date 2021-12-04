@@ -18,6 +18,8 @@ class MovieReviewCorpus():
         # held-out train/test set
         self.train=[]
         self.test=[]
+        self.unsup_train = []
+        self.unsup_indices = []
         # folds for cross-validation
         self.folds={} # round robin splitting
         self.folds_conseq = {} # consecutive splitting
@@ -144,10 +146,12 @@ class MovieReviewCorpus():
                     else: cv_info_conseq[fold_num].append(review_metadata)
         else: 
             # parse reviews from imbd data format
-            supra_folders = ["train", "test"]
-            sub_folders = ["pos", "neg", "unsup"]
+            supra_folders = ["test","train"]
             for split in supra_folders: # corresponds to train/test main split
+                if split == "train": sub_folders = ["pos", "neg", "unsup"]
+                else: sub_folders = ["pos", "neg"]
                 for sent_class in sub_folders: # corresponds to labeled sentiment
+                                        
                     sent_dir = f"{data_dir}{split}/{sent_class}/" 
                     all_reviews = [rev for rev in os.listdir(sent_dir) if rev[-4:] == ".txt"]   
                     # process each review and put in associated train/test based on file number
@@ -163,18 +167,23 @@ class MovieReviewCorpus():
                             test_info.append(review_metadata)
                         else:
                             train_info.append(review_metadata)
+                            
+                        self.unsup_train.append(review_metadata)
+                        self.unsup_indices.append(sent_dir + review_file_name) # in case needed later
+                        
+                        if sent_class != "unsup":
 
-                        # round robin
-                        fold_num = review_idx % 10 # b/c mod-10
-                        if fold_num not in cv_info:
-                            cv_info[fold_num] = [review_metadata]
-                        else:
-                            cv_info[fold_num].append(review_metadata)
+                            # round robin
+                            fold_num = review_idx % 10 # b/c mod-10
+                            if fold_num not in cv_info:
+                                cv_info[fold_num] = [review_metadata]
+                            else:
+                                cv_info[fold_num].append(review_metadata)
 
 
-                        # CONSECUTIVE SPLITTING
-                        if orig_fold_num not in cv_info_conseq: cv_info_conseq[orig_fold_num] = [review_metadata]
-                        else: cv_info_conseq[orig_fold_num].append(review_metadata)
+                            # CONSECUTIVE SPLITTING
+                            if orig_fold_num not in cv_info_conseq: cv_info_conseq[orig_fold_num] = [review_metadata]
+                            else: cv_info_conseq[orig_fold_num].append(review_metadata)
 
         # set class attributes using curated metadata
         self.train = train_info
