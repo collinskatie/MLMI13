@@ -20,6 +20,7 @@ class Evaluation():
         """
         # reset predictions
         self.predictions=[]
+        self.preds_per_fold= []
         # TODO Q3
         num_folds = len(set(corpus.folds))
         # todo ask question: are the predictions storing the avg??
@@ -30,6 +31,7 @@ class Evaluation():
             train_files = np.reshape(train_files, [train_files.shape[0]*train_files.shape[1], train_files.shape[-1]])
             self.train(train_files)
             preds = self.test(test_files, overwrite=False)
+            self.preds_per_fold.append(preds)
             self.predictions.extend(preds)
 
     def getStdDeviation(self):
@@ -46,12 +48,20 @@ class Evaluation():
         # std deviation is the square root of the variance (mean of square deviations)
         return math.sqrt(square_deviations/10.0)
 
-    def getAccuracy(self):
+    def getAccuracy(self, cross_val_preds=False):
         """
         get accuracy of classifier.
 
         @return: float containing percentage correct
         """
+        
+        if cross_val_preds: 
+            # score per fold
+            self.score_per_fold = []
+           
+            for preds in self.preds_per_fold: 
+                self.score_per_fold.append(preds.count("+")/float(len(preds)))
+        
         # note: data set is balanced so just taking number of correctly classified over total
         # "+" = correctly classified and "-" = error
         return self.predictions.count("+")/float(len(self.predictions))

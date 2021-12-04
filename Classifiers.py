@@ -43,6 +43,8 @@ class NaiveBayesText(Evaluation):
         self.discard_closed_class=discard_closed_class
         # stored predictions from test instances
         self.predictions=[]
+        self.preds_per_fold = []
+        self.score_per_fold = [] 
 
     def extractVocabulary(self,reviews):
         """
@@ -248,6 +250,9 @@ class SVMText(Evaluation):
         
         # maintain a tokenizer
         self.v = TfidfVectorizer()#CountVectorizer()
+        
+        self.preds_per_fold = []
+        self.score_per_fold = []
 
     def extractVocabulary(self,reviews):
         self.vocabulary = set()

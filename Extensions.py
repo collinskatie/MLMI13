@@ -23,6 +23,8 @@ class SVMDoc2Vec(SVMText):
         self.predictions = []
         self.model = model
         self.normalize_vecs = normalize_vecs # added parameter to play with :) 
+        self.preds_per_fold = []
+        self.score_per_fold= []
 
     def normalize(self,vector):
         """
