@@ -13,7 +13,7 @@ class SVMDoc2Vec(SVMText):
     class for baseline extension using SVM with Doc2Vec pre-trained vectors
     """
     def __init__(self,model,bigrams,trigrams,discard_closed_class, normalize_vecs=False,
-                kernel="rbf", C=1):
+                kernel="rbf", C=1,inf_epochs=10):
         """
         initialisation of SVMDoc2Vec classifier.
         @param model: pre-trained doc2vec model to use
@@ -31,6 +31,8 @@ class SVMDoc2Vec(SVMText):
         
         self.pred_y = []
         self.true_y = []
+        
+        self.inf_epochs = inf_epochs
 
     def normalize(self,vector):
         """
@@ -61,7 +63,7 @@ class SVMDoc2Vec(SVMText):
         for idx,(_, review) in enumerate(reviews): 
             all_review_tokens[idx] = self.extractReviewTokens(review)
         # convert between review tokens to doc features
-        doc_vecs = [self.model.infer_vector(review_tokens) for review_tokens in all_review_tokens]
+        doc_vecs = [self.model.infer_vector(review_tokens, epochs=self.inf_epochs) for review_tokens in all_review_tokens]
         # todo: play with whether we normalize or not!! 
         if self.normalize_vecs: 
             doc_vecs = [self.normalize(vector) for vec in doc_vecs]
@@ -97,9 +99,10 @@ class DocFeaturizer():
     """
     class for housing operations on the Doc2Vec featurizer (custom written for ease of i/o)
     """
-    def __init__(self, dim_features=50, window=2,dm=1, dbow_words=0, dm_concat=0):
+    def __init__(self, dim_features=50, window=2,dm=1, dbow_words=0, dm_concat=0,min_count=2):
         # initialize model
-        self.model = Doc2Vec(vector_size=dim_features, window=window,dm=dm,dbow_words=dbow_words, dm_concat=dm_concat) 
+        self.model = Doc2Vec(vector_size=dim_features, window=window,dm=dm,dbow_words=dbow_words, dm_concat=dm_concat,
+                            min_count=min_count) 
         
         
     def train_model(self, docs, epochs=10): 
@@ -115,9 +118,9 @@ class DocFeaturizer():
         self.model.build_vocab(tagged_data)
         self.model.train(tagged_data, total_examples=self.model.corpus_count, epochs=epochs)
    
-    def infer_vector(self, doc_tokens): 
+    def infer_vector(self, doc_tokens, epochs=10): 
         # note: same name as main class to allow this object to be used w/ other classes w/o modification 
-        return self.model.infer_vector(doc_tokens)
+        return self.model.infer_vector(doc_tokens, epochs)
     
     def get_embeddings(self, docs, normalize=False):
         # extract embeddings for set of documents
