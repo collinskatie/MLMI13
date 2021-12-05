@@ -12,14 +12,17 @@ class SVMDoc2Vec(SVMText):
     """
     class for baseline extension using SVM with Doc2Vec pre-trained vectors
     """
-    def __init__(self,model,bigrams,trigrams,discard_closed_class, normalize_vecs=False):
+    def __init__(self,model,bigrams,trigrams,discard_closed_class, normalize_vecs=False,
+                kernel="rbf", C=1):
         """
         initialisation of SVMDoc2Vec classifier.
         @param model: pre-trained doc2vec model to use
         @type model: string (e.g. random_model.model)
         """
         SVMText.__init__(self, bigrams,trigrams,discard_closed_class)
-        self.svm_classifier = svm.SVC()
+        self.svm_classifier = svm.SVC(kernel=kernel, C=C)
+        self.kernel = kernel
+        self.C = C
         self.predictions = []
         self.model = model
         self.normalize_vecs = normalize_vecs # added parameter to play with :) 
