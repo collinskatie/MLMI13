@@ -25,6 +25,9 @@ class SVMDoc2Vec(SVMText):
         self.normalize_vecs = normalize_vecs # added parameter to play with :) 
         self.preds_per_fold = []
         self.score_per_fold= []
+        
+        self.pred_y = []
+        self.true_y = []
 
     def normalize(self,vector):
         """
@@ -75,6 +78,9 @@ class SVMDoc2Vec(SVMText):
         test_features = self.getFeatures(reviews)
         
         pred_y = list(self.svm_classifier.predict(test_features))
+        
+        self.pred_y = pred_y
+        self.true_y = true_labels
         
         preds = []
         for pred, true in zip(pred_y, true_labels):  

@@ -82,7 +82,9 @@ class MovieReviewCorpus():
                 token, pos_tag = token_data.split("\t")
 #                 token = token.lower() # OPTIONAL!!!! discuss!!
                 if self.stemming: 
+#                     print("stemming!!!!", token)
                     token = self.stemmer.stem(token)
+#                     print("post stem: ", token)
                 if self.pos:
                     data_obj = (token, pos_tag)
                 else:
@@ -163,16 +165,16 @@ class MovieReviewCorpus():
                         sent_class = sent_class.upper() # for consistency with other dataset -- use all caps w/ labels
                         review_metadata = [sent_class, parsed_review_data]
 
-                        if split == "test":
-                            test_info.append(review_metadata)
-                        else:
-                            train_info.append(review_metadata)
-                            
                         self.unsup_train.append(review_metadata)
                         self.unsup_indices.append(sent_dir + review_file_name) # in case needed later
                         
-                        if sent_class != "unsup":
+                        if sent_class != "UNSUP":
 
+                            if split == "test":
+                                test_info.append(review_metadata)
+                            else:
+                                train_info.append(review_metadata)
+                            
                             # round robin
                             fold_num = review_idx % 10 # b/c mod-10
                             if fold_num not in cv_info:

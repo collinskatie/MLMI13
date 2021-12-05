@@ -1,5 +1,6 @@
 import math,sys
 import numpy as np
+from sklearn.metrics import matthews_corrcoef
 
 class Evaluation():
     """
@@ -65,3 +66,10 @@ class Evaluation():
         # note: data set is balanced so just taking number of correctly classified over total
         # "+" = correctly classified and "-" = error
         return self.predictions.count("+")/float(len(self.predictions))
+    
+    def getMCC(self): 
+        
+        # map from POS/NEG => +1/-1 for MCC
+        mcc = matthews_corrcoef(self.true_y, self.pred_y)
+        print(f"MCC: {mcc:.2f}")
+        return mcc

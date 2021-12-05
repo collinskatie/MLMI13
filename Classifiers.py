@@ -9,9 +9,10 @@ from sklearn import svm
 from sklearn.feature_extraction import DictVectorizer
 from collections import Counter, OrderedDict
 from sklearn.feature_extraction.text import CountVectorizer,TfidfVectorizer
+from sklearn.preprocessing import OneHotEncoder
 
 class NaiveBayesText(Evaluation):
-    def __init__(self,smoothing,bigrams,trigrams,discard_closed_class):
+    def __init__(self,smoothing,bigrams,trigrams,discard_closed_class,laplace_smoother=1):
         """
         initialisation of NaiveBayesText classifier.
 
@@ -45,6 +46,11 @@ class NaiveBayesText(Evaluation):
         self.predictions=[]
         self.preds_per_fold = []
         self.score_per_fold = [] 
+        
+        self.laplace_smoother = laplace_smoother
+        
+        self.pred_y = []
+        self.true_y = []
 
     def extractVocabulary(self,reviews):
         """
@@ -156,7 +162,7 @@ class NaiveBayesText(Evaluation):
         # set empty for all tokens to start
         self.condProb = {token: {"POS": 0, "NEG": 0} for token in self.vocabulary}
 
-        laplace_smoother = 1 # laplace smoothing of a constant value
+        laplace_smoother = self.laplace_smoother # laplace smoothing of a constant value
         if self.smoothing:
             # add the num tot words in the vocab to each n_words
             n_tot_words = len(self.vocabulary)#np.sum([n_words_sentiment[sent] for sent in sentiment_classes])
@@ -217,14 +223,184 @@ class NaiveBayesText(Evaluation):
             # help from: https://stackoverflow.com/questions/268272/getting-key-with-maximum-value-in-dictionary
             # note: if both zero, could randomly return to avoid always choosing one class
             pred_sent = max(sentiment_probs, key=lambda k: sentiment_probs[k])
+            self.pred_y.append(pred_sent)
+            self.true_y.append(true_sentiment)
             if pred_sent == true_sentiment:
                 preds.append("+")
             else: preds.append("-")
         if overwrite: self.predictions = preds
         else: return preds # for later updating of predictions array
+        
+        
+# class SVMText(Evaluation):
+#     def __init__(self,bigrams,trigrams,discard_closed_class, kernel="rbf", C=1):
+#         """
+#         initialisation of SVMText object
+#         @param bigrams: add bigrams?
+#         @type bigrams: boolean
+#         @param trigrams: add trigrams?
+#         @type trigrams: boolean
+#         @param svmlight_dir: location of smvlight binaries
+#         @type svmlight_dir: string
+#         @param svmlight_dir: location of smvlight binaries
+#         @type svmlight_dir: string
+#         @param discard_closed_class: restrict unigrams to nouns, adjectives, adverbs and verbs?
+#         @type discard_closed_class: boolean
+#         """
+#         self.svm_classifier = svm.SVC(kernel=kernel, C=C)
+#         self.predictions=[]
+#         self.vocabulary=set()
+#         # add in bigrams?
+#         self.bigrams=bigrams
+#         # add in trigrams?
+#         self.trigrams=trigrams
+#         # restrict to nouns, adjectives, adverbs and verbs?
+#         self.discard_closed_class=discard_closed_class
+        
+#         # maintain a tokenizer
+#         self.v = OneHotEncoder()#CountVectorizer()
+        
+#         self.preds_per_fold = []
+#         self.score_per_fold = []
+        
+#         self.pred_y = []
+#         self.true_y = []
+
+#     def extractVocabulary(self,reviews):
+#         self.vocabulary = set()
+#         for sentiment, review in reviews:
+#             for token in self.extractReviewTokens(review):
+#                  self.vocabulary.add(token)
+
+#     def extractReviewTokens(self,review):
+#         """
+#         extract tokens from reviews.
+#         @param reviews: movie reviews
+#         @type reviews: list of (string, list) tuples corresponding to (label, content)
+#         @return: list of strings
+#         """
+#         text=[]
+#         for term in review:
+#             # check if pos tags are included in review e.g. ("bad","JJ")
+#             if len(term)==2 and self.discard_closed_class:
+#                 if term[1][0:2] in ["NN","JJ","RB","VB"]: text.append(term)
+#             else:
+#                 text.append(term)
+#         if self.bigrams:
+#             for bigram in ngrams(review,2): text.append(term)
+#         if self.trigrams:
+#             for trigram in ngrams(review,3): text.append(term)
+#         return text
+
+#     def getFeatureVec(self, review, num_features):
+#         """
+#         Custom function to get feature vector for a given review
+#         """
+#         feats = np.zeros(num_features)
+#         tokens = self.extractReviewTokens(review)
+#         for idx, feature in enumerate(self.vocabulary):
+#             feats[idx] = 1#tokens.count(feature)
+#         return feats
+
+#     def getFeatures(self,reviews):
+#         """
+#         determine features and labels from training reviews.
+#         1. extract vocabulary (i.e. get features for training)
+#         2. extract features for each review as well as saving the sentiment
+#         3. append each feature to self.input_features and each label to self.labels
+#         (self.input_features will then be a list of list, where the inner list is
+#         the features)
+#         @param reviews: movie reviews
+#         @type reviews: list of (string, list) tuples corresponding to (label, content)
+#         """
+
+#         self.input_features = []
+#         self.labels = []
+        
+#         # label is just first elmt per reviews
+#         self.labels = [label for label, _ in reviews]
+#         # extract tokens per review
+# #         review_tokens = [np.array(self.extractReviewTokens(review)) for _,review in reviews]
+#         review_tokens = np.empty(len(reviews), dtype=object) # ensures that we can save POS tag info as tuples
+#         for idx,(_, review) in enumerate(reviews): 
+#             review_tokens[idx] = self.extractReviewTokens(review)
+            
+            
+#         review_tokens = [self.extractReviewTokens(review_text) for _, review_text in reviews]
+        
+#         '''
+#         idea: to handle cases where we have POS (check if tuple), just concatenate everything together per token
+#         and have spaces between them 
+#         '''
+       
+#         # tfidf help from: https://medium.com/@bedigunjit/simple-guide-to-text-classification-nlp-using-svm-and-naive-bayes-with-python-421db3a72d34
+#         sparse_features = self.v.fit_transform(review_tokens)
+        
+# #         # get vocab and get sparse vectors
+# #         # help from: https://stackoverflow.com/questions/46965524/create-sparse-word-matrix-in-python-bag-of-words
+# #         sparse_features = self.v.fit_transform(Counter(f) for f in np.array(review_tokens))
+
+#         self.input_features = sparse_features # size = (num reviews, vocab size)
+        
+#         return sparse_features # counts of occurances  
+
+
+#     def train(self,reviews):
+#         """
+#         train svm. This uses the sklearn SVM module, and further details can be found using
+#         the sci-kit docs. You can try changing the SVM parameters.
+#         @param reviews: training data
+#         @type reviews: list of (string, list) tuples corresponding to (label, content)
+#         """
+#         # reset
+#         self.vocabulary = set()
+
+#         # extract vocab
+#         self.extractVocabulary(reviews)
+        
+#         # function to determine features in training set.
+#         self.getFeatures(reviews)
+
+#         # reset SVM classifier and train SVM model
+#         self.svm_classifier = svm.SVC()
+#         self.svm_classifier.fit(self.input_features, self.labels)
+
+#     def test(self,reviews, overwrite=True):
+#         """
+#         test svm
+#         @param reviews: test data
+#         @type reviews: list of (string, list) tuples corresponding to (label, content)
+#         """
+#         # TODO Q6.1
+#         # get test features using pre-loaded featurizer (e.g., vocab already extracted by fitting) 
+#         true_labels = [label for label, _ in reviews]
+#         review_tokens = np.empty(len(reviews), dtype=object) # ensures that we can save POS tag info as tuples
+#         for idx,(_, review) in enumerate(reviews): 
+#             review_tokens[idx] = self.extractReviewTokens(review)
+            
+# #         test_features = self.v.transform(Counter(f) for f in np.array(review_tokens))
+        
+#         review_tokens = [self.extractReviewTokens(review_text) for _, review_text in reviews]
+        
+#         test_features = self.v.transform(review_tokens)
+        
+#         pred_y = list(self.svm_classifier.predict(test_features))
+        
+#         self.pred_y = pred_y
+#         self.true_y = true_y
+        
+#         preds = []
+#         for pred, true in zip(pred_y, true_labels):  
+#             if pred == true: preds.append("+")
+#             else: preds.append("-")
+
+#         if overwrite: self.predictions = preds
+#         else: return preds
+
+
 
 class SVMText(Evaluation):
-    def __init__(self,bigrams,trigrams,discard_closed_class):
+    def __init__(self,bigrams,trigrams,discard_closed_class, kernel="rbf", C=1):
         """
         initialisation of SVMText object
         @param bigrams: add bigrams?
@@ -238,7 +414,11 @@ class SVMText(Evaluation):
         @param discard_closed_class: restrict unigrams to nouns, adjectives, adverbs and verbs?
         @type discard_closed_class: boolean
         """
-        self.svm_classifier = svm.SVC()
+        print("kernel: ", kernel)
+        self.kernel = kernel
+        self.C = C
+        self.svm_classifier = svm.SVC(kernel=self.kernel, C=self.C)
+        print("kernel: ", self.svm_classifier.kernel)
         self.predictions=[]
         self.vocabulary=set()
         # add in bigrams?
@@ -253,6 +433,9 @@ class SVMText(Evaluation):
         
         self.preds_per_fold = []
         self.score_per_fold = []
+        
+        self.pred_y = []
+        self.true_y = []
 
     def extractVocabulary(self,reviews):
         self.vocabulary = set()
@@ -362,7 +545,7 @@ class SVMText(Evaluation):
         self.getFeatures(reviews)
 
         # reset SVM classifier and train SVM model
-        self.svm_classifier = svm.SVC()
+        self.svm_classifier = svm.SVC(kernel=self.kernel, C=self.C)
         self.svm_classifier.fit(self.input_features, self.labels)
 
     def test(self,reviews, overwrite=True):
@@ -394,6 +577,9 @@ class SVMText(Evaluation):
         
         pred_y = list(self.svm_classifier.predict(test_features))
         
+        self.pred_y = pred_y
+        self.true_y = true_labels
+        
         preds = []
         for pred, true in zip(pred_y, true_labels):  
             if pred == true: preds.append("+")
@@ -401,137 +587,4 @@ class SVMText(Evaluation):
 
         if overwrite: self.predictions = preds
         else: return preds
-        
-# class SVMText(Evaluation):
-#     def __init__(self,bigrams,trigrams,discard_closed_class):
-#         """
-#         initialisation of SVMText object
-#         @param bigrams: add bigrams?
-#         @type bigrams: boolean
-#         @param trigrams: add trigrams?
-#         @type trigrams: boolean
-#         @param svmlight_dir: location of smvlight binaries
-#         @type svmlight_dir: string
-#         @param svmlight_dir: location of smvlight binaries
-#         @type svmlight_dir: string
-#         @param discard_closed_class: restrict unigrams to nouns, adjectives, adverbs and verbs?
-#         @type discard_closed_class: boolean
-#         """
-#         self.svm_classifier = svm.SVC()
-#         self.predictions=[]
-#         self.vocabulary=set()
-#         # add in bigrams?
-#         self.bigrams=bigrams
-#         # add in trigrams?
-#         self.trigrams=trigrams
-#         # restrict to nouns, adjectives, adverbs and verbs?
-#         self.discard_closed_class=discard_closed_class
-        
-#         # maintain a tokenizer
-#         self.v = DictVectorizer()
 
-#     def extractVocabulary(self,reviews):
-#         self.vocabulary = set()
-#         for sentiment, review in reviews:
-#             for token in self.extractReviewTokens(review):
-#                  self.vocabulary.add(token)
-
-#     def extractReviewTokens(self,review):
-#         """
-#         extract tokens from reviews.
-#         @param reviews: movie reviews
-#         @type reviews: list of (string, list) tuples corresponding to (label, content)
-#         @return: list of strings
-#         """
-#         text=[]
-#         for term in review:
-#             # check if pos tags are included in review e.g. ("bad","JJ")
-#             if len(term)==2 and self.discard_closed_class:
-#                 if term[1][0:2] in ["NN","JJ","RB","VB"]: text.append(term)
-#             else:
-#                 text.append(term)
-#         if self.bigrams:
-#             for bigram in ngrams(review,2): text.append(term)
-#         if self.trigrams:
-#             for trigram in ngrams(review,3): text.append(term)
-#         return text
-
-#     def getFeatureVec(self, review, num_features):
-#         """
-#         Custom function to get feature vector for a given review
-#         """
-#         feats = np.zeros(num_features)
-#         tokens = self.extractReviewTokens(review)
-#         for idx, feature in enumerate(self.vocabulary):
-#             feats[idx] = 1#tokens.count(feature)
-#         return feats
-
-#     def getFeatures(self,reviews):
-#         """
-#         determine features and labels from training reviews.
-#         1. extract vocabulary (i.e. get features for training)
-#         2. extract features for each review as well as saving the sentiment
-#         3. append each feature to self.input_features and each label to self.labels
-#         (self.input_features will then be a list of list, where the inner list is
-#         the features)
-#         @param reviews: movie reviews
-#         @type reviews: list of (string, list) tuples corresponding to (label, content)
-#         """
-
-#         self.input_features = []
-#         self.labels = []
-        
-#         # label is just first elmt per reviews
-#         self.labels = [label for label, _ in reviews]
-#         # extract tokens per review
-# #         review_tokens = [np.array(self.extractReviewTokens(review)) for _,review in reviews]
-#         review_tokens = np.empty(len(reviews), dtype=object) # ensures that we can save POS tag info as tuples
-#         for idx,(_, review) in enumerate(reviews): 
-#             review_tokens[idx] = self.extractReviewTokens(review)
-        
-#         # get vocab and get sparse vectors
-#         # help from: https://stackoverflow.com/questions/46965524/create-sparse-word-matrix-in-python-bag-of-words
-#         sparse_features = self.v.fit_transform(Counter(f) for f in np.array(review_tokens))
-#         self.input_features = sparse_features # size = (num reviews, vocab size)
-        
-#         return sparse_features # counts of occurances  
-
-
-#     def train(self,reviews):
-#         """
-#         train svm. This uses the sklearn SVM module, and further details can be found using
-#         the sci-kit docs. You can try changing the SVM parameters.
-#         @param reviews: training data
-#         @type reviews: list of (string, list) tuples corresponding to (label, content)
-#         """
-#         # function to determine features in training set.
-#         self.getFeatures(reviews)
-
-#         # reset SVM classifier and train SVM model
-#         self.svm_classifier = svm.SVC()
-#         self.svm_classifier.fit(self.input_features, self.labels)
-
-#     def test(self,reviews, overwrite=True):
-#         """
-#         test svm
-#         @param reviews: test data
-#         @type reviews: list of (string, list) tuples corresponding to (label, content)
-#         """
-#         # TODO Q6.1
-#         # get test features using pre-loaded featurizer (e.g., vocab already extracted by fitting) 
-#         true_labels = [label for label, _ in reviews]
-#         review_tokens = np.empty(len(reviews), dtype=object) # ensures that we can save POS tag info as tuples
-#         for idx,(_, review) in enumerate(reviews): 
-#             review_tokens[idx] = self.extractReviewTokens(review)
-#         test_features = self.v.transform(Counter(f) for f in np.array(review_tokens))
-        
-#         pred_y = list(self.svm_classifier.predict(test_features))
-#         print("pred y: ", pred_y)
-        
-#         preds = []
-#         for pred, true in zip(pred_y, true_labels):  
-#             if pred == true: preds.append("+")
-#             else: preds.append("-")
-
-#         if overwrite: self.predictions = preds
-#         else: return preds
