@@ -2,12 +2,17 @@ from Analysis import Evaluation
 from Analysis import Evaluation
 
 class SentimentLexicon(Evaluation):
-    def __init__(self):
+    def __init__(self, multiplier=2):
         """
         read in lexicon database and store in self.lexicon
         """
         # if multiple entries take last entry by default
         self.lexicon = self.get_lexicon_dict()
+        
+        self.true_y= []
+        self.pred_y= []
+        
+        self.multiplier=multiplier
 
     def get_lexicon_dict(self):
         lexicon_dict = {}
@@ -71,11 +76,14 @@ class SentimentLexicon(Evaluation):
                         # note: multiplier doesn't impact "neutral"
                         #   do we want to change that?? (^)
                         # NOTE: multiplier scale is also a hyperparam!
-                        multiplier = 2 if "strong" in word_info[0] else 1
+                        multiplier = self.multiplier if "strong" in word_info[0] else 1
                         positivity_score += multiplier * sentiment_val
 
             if positivity_score > threshold: pred_class = "POS"
             else: pred_class = "NEG"
+                
+            self.pred_y.append(pred_class)
+            self.true_y.append(true_class)
 
             # check if matches true or not
             if pred_class == true_class: self.predictions.append("+")
